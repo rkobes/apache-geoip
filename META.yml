@@ -1,0 +1,48 @@
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         Apache-GeoIP
+version:      1.63
+installdirs:  site
+requires:
+    Apache2::RequestRec:                     0 
+license:      perl
+abstract:     Look up country by IP address
+authored_by:
+    - Randy Kobes <r.kobes@uwinnipeg.ca>
+distribution_type: module
+no_index:
+    file:
+        - Apache2/t/response/TestGeoIP/ip.pm
+        - Apache2/t/response/TestGeoIP/basic.pm
+        - Apache2/t/response/TestGeoIP/mirror.pm
+        - Apache2/t/response/TestGeoIP/name.pm
+        - Apache/t/response/TestGeoIP/ip.pm
+        - Apache/t/response/TestGeoIP/basic.pm
+        - Apache/t/response/TestGeoIP/mirror.pm
+        - Apache/t/response/TestGeoIP/name.pm
+provides:
+    Apache2::GeoIP:
+        file: Apache2/GeoIP.pm
+        version: 1.63
+    Apache2::Geo::IP:
+        file: Apache2/Geo/IP.pm
+        version: 1.63
+    Apache2::Geo::Mirror:
+        file: Apache2/Geo/Mirror.pm
+        version: 1.63
+    Apache2::Geo::IP::Record:
+        file: Apache2/Geo/IP/Record.pm
+        version: 1.63
+    Apache::GeoIP:
+        file: Apache/GeoIP.pm
+        version: 1.63
+    Apache::Geo::IP:
+        file: Apache/Geo/IP.pm
+        version: 1.63
+    Apache::Geo::Mirror:
+        file: Apache/Geo/Mirror.pm
+        version: 1.63
+    Apache::Geo::IP::Record:
+        file: Apache/Geo/IP/Record.pm
+        version: 1.63  
+generated_by: ExtUtils::MakeMaker version 6.17
