@@ -21,7 +21,7 @@
 #include "libGeoIP.h"
 #include "libGeoIP_internal.h"
 #include "libGeoIPCity.h"
-#ifndef WIN32
+#if !defined(_WIN32)
 #include <netdb.h>
 #include <netinet/in.h> /* For ntohl */
 #else
@@ -45,7 +45,7 @@ GeoIPRecord * _extract_record(GeoIP* gi, unsigned int seek_record, int *next_rec
 	int str_length = 0;
 	int j;
 	double latitude = 0, longitude = 0;
-	int dmaarea_combo = 0;
+	int metroarea_combo = 0;
 	int bytes_read = 0;
 	if (seek_record == gi->databaseSegments[0])		
 		return NULL;
@@ -83,7 +83,7 @@ GeoIPRecord * _extract_record(GeoIP* gi, unsigned int seek_record, int *next_rec
 		str_length++;
 	if (str_length > 0) {
 		record->region = malloc(str_length+1);
-		strncpy(record->region, record_buf, str_length+1);
+		strncpy(record->region, (char *)record_buf, str_length+1);
 	}
 	record_buf += str_length + 1;
 	str_length = 0;
@@ -107,7 +107,7 @@ GeoIPRecord * _extract_record(GeoIP* gi, unsigned int seek_record, int *next_rec
 		str_length++;
 	if (str_length > 0) {
 		record->postal_code = malloc(str_length+1);
-		strncpy(record->postal_code, record_buf, str_length+1);
+		strncpy(record->postal_code, (char *)record_buf, str_length+1);
 	}
 	record_buf += (str_length + 1);
 
@@ -122,14 +122,14 @@ for (j = 0; j < 3; ++j)
 		longitude += (record_buf[j] << (j * 8));
 	record->longitude = longitude/10000 - 180;
 
-	/* get area code and dma code for post April 2002 databases and for US locations */
+	/* get area code and metro code for post April 2002 databases and for US locations */
 	if (GEOIP_CITY_EDITION_REV1 == gi->databaseType) {
 		if (!strcmp(record->country_code, "US")) {
 			record_buf += 3;
 			for (j = 0; j < 3; ++j)
-				dmaarea_combo += (record_buf[j] << (j * 8));
-			record->dma_code = dmaarea_combo/1000;
-			record->area_code = dmaarea_combo % 1000;
+				metroarea_combo += (record_buf[j] << (j * 8));
+			record->metro_code = metroarea_combo/1000;
+			record->area_code = metroarea_combo % 1000;
 		}
 	}
 
@@ -157,8 +157,28 @@ GeoIPRecord * _get_record(GeoIP* gi, unsigned long ipnum) {
 	return _extract_record(gi, seek_record, NULL);
 }
 
+static
+GeoIPRecord * _get_record_v6(GeoIP* gi, geoipv6_t ipnum) {
+       unsigned int seek_record;
+
+       if (gi->databaseType != GEOIP_CITY_EDITION_REV0 &&
+                       gi->databaseType != GEOIP_CITY_EDITION_REV1) {
+               printf("Invalid database type %s, expected %s\n", GeoIPDBDescription[(int)gi->databaseType], GeoIPDBDescription[GEOIP_CITY_EDITION_REV1]);
+               return 0;
+       }
+
+       seek_record = _GeoIP_seek_record_v6(gi, ipnum);
+       return _extract_record(gi, seek_record, NULL);
+}
+
+
+
 GeoIPRecord * GeoIP_record_by_ipnum (GeoIP* gi, unsigned long ipnum) {
 	return _get_record(gi, ipnum);
+}
+
+GeoIPRecord * GeoIP_record_by_ipnum_v6 (GeoIP* gi, geoipv6_t ipnum) {
+       return _get_record_v6(gi, ipnum);
 }
 
 GeoIPRecord * GeoIP_record_by_addr (GeoIP* gi, const char *addr) {
@@ -170,6 +190,15 @@ GeoIPRecord * GeoIP_record_by_addr (GeoIP* gi, const char *addr) {
 	return _get_record(gi, ipnum);
 }
 
+GeoIPRecord * GeoIP_record_by_addr_v6 (GeoIP* gi, const char *addr) {
+       geoipv6_t ipnum;
+       if (addr == NULL) {
+               return 0;
+       }
+       ipnum = _GeoIP_addr_to_num_v6(addr);
+       return _get_record_v6(gi, ipnum);
+}
+
 GeoIPRecord * GeoIP_record_by_name (GeoIP* gi, const char *name) {
 	unsigned long ipnum;
 	if (name == NULL) {
@@ -177,6 +206,15 @@ GeoIPRecord * GeoIP_record_by_name (GeoIP* gi, const char *name) {
 	}
 	ipnum = _GeoIP_lookupaddress(name);
 	return _get_record(gi, ipnum);
+}
+
+GeoIPRecord * GeoIP_record_by_name_v6 (GeoIP* gi, const char *name) {
+        geoipv6_t ipnum;
+       if (name == NULL) {
+               return 0;
+       }
+       ipnum = _GeoIP_lookupaddress_v6(name);
+       return _get_record_v6(gi, ipnum);
 }
 
 int GeoIP_record_id_by_addr (GeoIP* gi, const char *addr) {
@@ -191,6 +229,20 @@ int GeoIP_record_id_by_addr (GeoIP* gi, const char *addr) {
 	}
 	ipnum = _GeoIP_addr_to_num(addr);
 	return _GeoIP_seek_record(gi, ipnum);
+}
+
+int GeoIP_record_id_by_addr_v6 (GeoIP* gi, const char *addr) {
+       geoipv6_t ipnum;
+       if (gi->databaseType != GEOIP_CITY_EDITION_REV0 &&
+                       gi->databaseType != GEOIP_CITY_EDITION_REV1) {
+               printf("Invalid database type %s, expected %s\n", GeoIPDBDescription[(int)gi->databaseType], GeoIPDBDescription[GEOIP_CITY_EDITION_REV1]);
+               return 0;
+       }
+       if (addr == NULL) {
+               return 0;
+       }
+       ipnum = _GeoIP_addr_to_num_v6(addr);
+       return _GeoIP_seek_record_v6(gi, ipnum);
 }
 
 int GeoIP_init_record_iter (GeoIP* gi) {
@@ -216,9 +268,10 @@ void GeoIPRecord_delete (GeoIPRecord *gir) {
 
 
 char * _iso_8859_1__utf8(const char * iso) {
-	char c, k;
+	signed char c;
+	char k;
 	char * p;
-	char * t = iso;
+	char * t = (char *)iso;
 	int len = 0;
 	while ( ( c = *t++) ){
 		if ( c < 0 )
