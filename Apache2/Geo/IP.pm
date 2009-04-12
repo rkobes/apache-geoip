@@ -8,10 +8,10 @@ use Apache2::RequestUtil ();                     # $r->dir_config
 use APR::Table ();                               # dir_config->get
 use Apache2::Log ();                             # log_error
 use Apache2::Connection ();
-use vars qw($VERSION $gi);
+use vars qw($VERSION $gi $xforwardedfor);
 
 use Geo::IP;
-
+use Apache2::GeoIP qw(find_addr);
 @Apache2::Geo::IP::ISA = qw(Apache2::RequestRec);
 
 $VERSION = '1.99';
@@ -80,30 +80,35 @@ sub init {
   }
 
   if (defined $type) {
-    unless ($gi = Geo::IP->open_type( $types{uc $type}, $flag ) {
-      $r->log->error("Couldn't make GeoIP object from Geo::IP->open_type( $type, $flag )");
+    $gi = Geo::IP->open_type( $types{uc $type}, $flag );
+    unless ($gi and ref($gi) eq 'Geo::IP') {
+      $r->log->error("Couldn't make Geo::IP object from Geo::IP->open_type( $type, $flag )");
       die;
     }
   }
   else {
     if (defined $file) {
-      unless ($gi = Geo::IP->open( $file, $flag ) {
-        $r->log->error("Couldn't make GeoIP object from Geo::IP->open( $file, $flag ) ");
+      $gi = Geo::IP->open( $file, $flag );
+      unless ($gi and ref($gi) eq 'Geo::IP') {
+        $r->log->error("Couldn't make Geo::IP object from Geo::IP->open( $file, $flag )");
         die;
       }
     }
     else {
-      unless ($gi = Geo::IP->new( $flag ) {
-        $r->log->error("Couldn't make GeoIP object from Geo::IP->new( $flag )");
+      $gi = Geo::IP->new( $flag );
+      unless ($gi and ref($gi) eq 'Geo::IP') {
+        $r->log->error("Couldn't make Geo::IP object from Geo::IP->new( $flag )");
         die;
       }
     }
   }
+  
+  $xforwardedfor = $r->dir_config->get('GeoIPXForwardedFor') || '';
 }
 
 sub country_code_by_addr {
   my $self = shift;
-  my $ip = shift || $self->connection->remote_ip;
+  my $ip = shift || find_addr($self, $xforwardedfor);
   return $gi->country_code_by_addr($ip);
 }
 
@@ -115,7 +120,7 @@ sub country_code_by_name {
 
 sub country_code3_by_addr {
   my $self = shift;
-  my $ip = shift || $self->connection->remote_ip;
+  my $ip = shift || find_addr($self, $xforwardedfor);
   return $gi->country_code3_by_addr($ip);
 }
 
@@ -127,7 +132,7 @@ sub country_code3_by_name {
 
 sub country_name_by_addr {
   my $self = shift;
-  my $ip = shift || $self->connection->remote_ip;
+  my $ip = shift || find_addr($self, $xforwardedfor);
   return $gi->country_name_by_addr($ip);
 }
 
@@ -139,7 +144,7 @@ sub country_name_by_name {
 
 sub record_by_addr {
   my $self = shift;
-  my $ip = shift || $self->connection->remote_ip;
+  my $ip = shift || find_addr($self, $xforwardedfor);
   return $gi->record_by_addr($ip);
 }
 
@@ -151,7 +156,7 @@ sub record_by_name {
 
 sub org_by_addr {
   my $self = shift;
-  my $ip = shift || $self->connection->remote_ip;
+  my $ip = shift || find_addr($self, $xforwardedfor);
   return $gi->org_by_addr($ip);
 }
 
@@ -163,7 +168,7 @@ sub org_by_name {
 
 sub region_by_addr {
   my $self = shift;
-  my $ip = shift || $self->connection->remote_ip;
+  my $ip = shift || find_addr($self, $xforwardedfor);
   return $gi->region_by_addr($ip);
 }
 
@@ -194,6 +199,7 @@ Apache2::Geo::IP - Look up country by IP address
  #   PerlResponseHandler Apache2::HelloIP
  #   PerlSetVar GeoIPDBFile "/usr/local/share/GeoIP/GeoIP.dat"
  #   PerlSetVar GeoIPFlag Standard
+ #   PerlSetVar GeoIPXForwardedFor 1
  #</Location>
  
  # file Apache2::HelloIP
@@ -262,7 +268,7 @@ The C<PerlSetVar> directives available are
 
 This specifies the location of the F<GeoIP.dat> file.
 If not given, it defaults to the location specified
-upon installing the module.
+upon installing the L<Geo::IP> module.
 
 =item PerlSetVar GeoIPFlag Standard
 
@@ -283,6 +289,13 @@ using I<PerlAddVar>. If no values are specified, I<STANDARD> is used.
 This specifies the type of database file to be used. See the L<Geo::IP> documentation
 for the various types that are supported.
 
+=item PerlSetVar GeoIPXForwardedFor 1
+
+If this directive is set to something true, the I<X-Forwarded-For> header will
+be used to try to identify the originating IP address; this is useful for clients 
+connecting to a web server through an HTTP proxy or load balancer. If this header
+is not present, C<$r-E<gt>connection-E<gt>remote_ip> will be used.
+
 =back
 
 =head1 METHODS
@@ -295,7 +308,9 @@ The available methods are as follows.
 
 Returns the ISO 3166 country code for an IP address.
 If I<$ipaddr> is not given, the value obtained by
-C<$r-E<gt>connection-E<gt>remote_ip> is used.
+examining the I<X-Forwarded-For> header will be used, if
+I<GeoIPXForwardedFor> is used, or else
+C<$r-E<gt>connection-E<gt>remote_ip> is used
 
 =item $code = $r->country_code_by_name( [$ipname] );
 
@@ -307,6 +322,8 @@ C<$r-E<gt>get_remote_host(Apache2::Const::REMOTE_HOST)> is used.
 
 Returns the 3 letter country code for an IP address.
 If I<$ipaddr> is not given, the value obtained by
+examining the I<X-Forwarded-For> header will be used, if
+I<GeoIPXForwardedFor> is used, or else
 C<$r-E<gt>connection-E<gt>remote_ip> is used.
 
 =item $code = $r->country_code3_by_name( [$ipname] );
@@ -319,6 +336,8 @@ C<$r-E<gt>get_remote_host(Apache2::Const::REMOTE_HOST)> is used.
 
 Returns the Organization, ISP name or Domain Name for an IP address.
 If I<$ipaddr> is not given, the value obtained by
+examining the I<X-Forwarded-For> header will be used, if
+I<GeoIPXForwardedFor> is used, or else
 C<$r-E<gt>connection-E<gt>remote_ip> is used.
 
 =item $org = $r->org_by_name( [$ipname] );
@@ -332,6 +351,8 @@ C<$r-E<gt>get_remote_host(Apache2::Const::REMOTE_HOST)> is used.
 Returns a list containing country and region for an IP address. If the
 region and/or country is unknown, I<undef> is returned. This works only 
 for region databases. If I<$ipaddr> is not given, the value obtained by
+examining the I<X-Forwarded-For> header will be used, if
+I<GeoIPXForwardedFor> is used, or else
 C<$r-E<gt>connection-E<gt>remote_ip> is used.
 
 =item ( $country, $region ) = $r->region_by_name( [$ipname] );
@@ -339,6 +360,8 @@ C<$r-E<gt>connection-E<gt>remote_ip> is used.
 Returns a list containing country and region for a hostname. If the
 region and/or country is unknown, I<undef> is returned. This works only 
 for region databases. If I<$ipname> is not given, the value obtained by
+examining the I<X-Forwarded-For> header will be used, if
+I<GeoIPXForwardedFor> is used, or else
 C<$r-E<gt>get_remote_host(Apache2::Const::REMOTE_HOST)> is used.
 
 =item $gi = $r->gi
@@ -357,6 +380,8 @@ A L<Geo::IP::Record> object can be created by two ways:
 
 Returns a L<Geo::IP::Record> object containing city location an IP address.
 If I<$ipaddr> is not given, the value obtained by
+examining the I<X-Forwarded-For> header will be used, if
+I<GeoIPXForwardedFor> is used, or else
 C<$r-E<gt>connection-E<gt>remote_ip> is used.
 
 =item $record = $r->record_by_name( [$ipname] );

@@ -2,7 +2,7 @@ package Apache2::Geo::Mirror;
 
 use strict;
 use warnings;
-use vars qw($VERSION $GM $ROBOTS_TXT $DEFAULT $FRESH);
+use vars qw($VERSION $GM $ROBOTS_TXT $DEFAULT $FRESH $XFORWARDEDFOR);
 
 $VERSION = '1.99';
 
@@ -17,6 +17,7 @@ use APR::URI ();
 use Apache2::RequestIO ();
 
 use Geo::Mirror;
+use Apache2::GeoIP qw(find_addr);
 
 @Apache2::Geo::Mirror::ISA = qw(Apache2::RequestRec);
 
@@ -31,6 +32,7 @@ sub new {
                  robots_txt => $ROBOTS_TXT->{$loc},
                  default => $DEFAULT->{$loc},
                  fresh => $FRESH->{$loc},
+                 xforwardedfor => $XFORWARDEDFOR->{$loc},
                }, $class;
 }
 
@@ -58,7 +60,7 @@ sub init {
   my $gm = Geo::Mirror->new(mirror_file => $mirror_file,
                             database_file => $file,
                             );
-  unless (defined $gm) {
+  unless (defined $gm and ref($gm) eq 'Geo::Mirror') {
     $r->log->error("Cannot create Geo::Mirror object");
     die;
   }
@@ -86,23 +88,24 @@ END
   }    
   $ROBOTS_TXT->{$loc} = $robots_txt;
   
-  $DEFAULT->{$loc} = $r->dir_config->get('GeoIPDefault') || 'us';
+  my @defaults = $r->dir_config->get('GeoIPDefault') || ();
+  $DEFAULT->{$loc} = \@defaults;
 
   $FRESH->{$loc} = $r->dir_config->get('GeoIPFresh') || 0;
+  
+  $XFORWARDEDFOR->{$loc} = $r->dir_config->get('GeoIPXForwardedFor') || '';
 }
 
 sub find_mirror_by_country {
   my ($self, $country) = @_;
   my $gm = $self->{gm};
-  my $default = $self->{default};
-  my $fresh = $self->{fresh};
   my $url;
   if ($country) {
-    $url = $gm->find_mirror_by_country($country, $fresh) || $default;
+    $url = $gm->find_mirror_by_country($country, $fresh) || $self->find_default;
   }
   else {
-    my $addr = $self->connection->remote_ip;
-    my $url = $gm->find_mirror_by_addr($addr, $fresh) || $default;
+    my $addr = find_addr($self, $self->{xforwardedfor});
+    my $url = $gm->find_mirror_by_addr($addr, $fresh) || $self->find_default;
   }
   return $url;
 }
@@ -112,8 +115,25 @@ sub find_mirror_by_addr {
   my $addr = shift || $self->connection->remote_ip;
   
   my $gm = $self->{gm};
-  my $url = $gm->find_mirror_by_addr($addr, $self->{fresh}) || $self->{default};
+  my $url = $gm->find_mirror_by_addr($addr, $self->{fresh}) || $self->find_default;
   return $url;
+}
+
+sub find_default {
+  my $self = shift;
+  my $default = '';
+  my $self_default = $self->{default};
+  if ($self_default and ref($self_default) eq 'ARRAY') {
+    my @defaults = @$self_default;
+    my $num = scalar @defaults;
+    $default = ($num == 1) ? $defaults[0] : $defaults[ rand($num) ];
+  }
+  return $default;
+}
+
+sub gm {
+  my $self = shift;
+  return $self->{gm};
 }
 
 sub auto_redirect : method {
@@ -126,20 +146,7 @@ sub auto_redirect : method {
     $r->print("$robots_txt\n");
     return Apache2::Const::OK;
   }
-  my $ReIpNum = qr{([01]?\d\d?|2[0-4]\d|25[0-5])};
-  my $ReIpAddr = qr{^$ReIpNum\.$ReIpNum\.$ReIpNum\.$ReIpNum$};
-  my $host =  $r->headers_in->get('X-Forwarded-For') || 
-    $r->connection->remote_ip;
-  if ($host =~ /,/) {
-      my @a = split /\s*,\s*/, $host;
-      for my $i (0 .. $#a) {
-          if ($a[$i] =~ /$ReIpAddr/ and $a[$i] ne '127.0.0.1') {
-              $host = $a[$i];
-              last;
-          }
-      }
-      $host = '127.0.0.1' if $host =~ /,/;
-  }
+  my $host = find_addr($r, 1);
   my $chosen = $r->find_mirror_by_addr($host);
   my ($scheme, $name, $path) = $chosen =~ m!^(http|ftp)://([^/]+/?)(.*)!;
   $uri->scheme($scheme);
@@ -153,7 +160,7 @@ sub auto_redirect : method {
   $r->headers_out->set(Location => $where);
   return Apache2::Const::REDIRECT;
 }
-  
+
 1;
 
 
@@ -262,6 +269,15 @@ with a freshness equal to or above this value may be chosen.
 =item PerlSetVar GeoIPDefault "http://some.where.org/"
 
 This specifies the default url to be used if no nearby mirror is found.
+Multiple values may be specified using I<PerlAddVar>; if more than one
+default is given, a random one will be chosen.
+
+=item PerlSetVar GeoIPXForwardedFor 1
+
+If this directive is set to something true, the I<X-Forwarded-For> header will
+be used to try to identify the originating IP address; this is useful for clients 
+connecting to a web server through an HTTP proxy or load balancer. If this header
+is not present, C<$r-E<gt>connection-E<gt>remote_ip> will be used.
 
 =back
 
@@ -280,7 +296,14 @@ of C<$r-E<gt>connection-E<gt>remote_ip>.
 =item $mirror = $r->find_mirror_by_addr( [$ipaddr] );
 
 Finds the nearest mirror by IP address. If I<$ipaddr> is not
-given, this defaults C<$r-E<gt>connection-E<gt>remote_ip>.
+given, the value obtained by
+examining the I<X-Forwarded-For> header will be used, if
+I<GeoIPXForwardedFor> is used, or else
+C<$r-E<gt>connection-E<gt>remote_ip> is used.
+
+=item $gm = $r->gm;
+
+Returns the L<Geo::IP::Mirror> object.
 
 =back
 
@@ -308,6 +331,10 @@ value I<default>, the string
     Disallow: /
 
 will be used, which disallows robot access to anything.
+
+Within automatic redirection, the I<X-Forwarded-For> header wil be
+used to try to infer the IP address of the client.
+
 
 =head1 VERSION
 

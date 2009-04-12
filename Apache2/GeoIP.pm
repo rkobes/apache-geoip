@@ -2,9 +2,37 @@ package Apache2::GeoIP;
 
 use strict;
 use warnings;
-use vars qw($VERSION);
+use base qw(Exporter);
+use vars qw($VERSION @EXPORT_OK);
 
 $VERSION = '1.99';
+@EXPORT_OK = qw(find_addr);
+
+sub find_addr {
+  my ($r, $xforwardedfor) = @_;
+  my $host;
+  if (defined $xforwardedfor) {
+    my $ReIpNum = qr{([01]?\d\d?|2[0-4]\d|25[0-5])};
+    my $ReIpAddr = qr{^$ReIpNum\.$ReIpNum\.$ReIpNum\.$ReIpNum$};
+    $host =  $r->headers_in->get('X-Forwarded-For') || 
+      $r->connection->remote_ip;
+    if ($host =~ /,/) {
+      my @a = split /\s*,\s*/, $host;
+      for my $i (0 .. $#a) {
+          if ($a[$i] =~ /$ReIpAddr/ and $a[$i] ne '127.0.0.1') {
+              $host = $a[$i];
+              last;
+          }
+      }
+      $host = '127.0.0.1' if $host =~ /,/;
+    }
+  }
+  else {
+    $host = $r->connection->remote_ip;
+  }
+  return $host;
+}
+
 
 1;
 
