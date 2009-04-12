@@ -1,5 +1,9 @@
 Revision history for Perl extension Apache::Geo::IP.
 
+1.64 April 10, 2009
+  - update C library and database to GeoIP-1.4.6
+  - add Apache directive to handle a robots.txt in automatic redirection
+
 1.63 March 26, 2007
   - update C library files to GeoIP-1.4.2
   - use mod_perl2, rather than mod_perl, in Apache2 test

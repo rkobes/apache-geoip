@@ -3,13 +3,8 @@ package Apache2::GeoIP;
 use strict;
 use warnings;
 use vars qw($VERSION);
-require DynaLoader;
 
-@Apache2::GeoIP::ISA = qw(DynaLoader);
-
-$VERSION = '1.63';
-
-__PACKAGE__->bootstrap($VERSION);
+$VERSION = '1.99';
 
 1;
 

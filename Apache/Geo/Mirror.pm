@@ -9,9 +9,10 @@ use POSIX;
 $VERSION = '1.63';
 
 my $GEOIP_DBFILE;
+my $robots_txt = '';
 
 use Apache;
-use Apache::Constants qw(REMOTE_HOST REDIRECT);
+use Apache::Constants qw(REMOTE_HOST REDIRECT OK);
 use Apache::URI;
 
 @Apache::Geo::Mirror::ISA = qw(Apache);
@@ -86,6 +87,26 @@ sub init {
     $r->warn("Couldn't make GeoIP object");
     die;
   }
+  
+  my $robot = $r->dir_config->get('GeoIPRobot') || '';
+  if (defined $robot) {
+    if (lc $robot eq 'default') {
+      $robots_txt = <<'END';
+User-agent: *
+Disallow: /
+END
+    }
+    else {
+      my $fh;
+      unless (open($fh, '<', $robot) {
+        $r->log->error("Cannot open GeoIP robots file '$robot': $!");
+        die;
+      }
+      my @lines = <$fh>;
+      close($fh);
+      $robots_txt = join "\n", @lines;
+    }
+  }    
   
   my $mirror_file = $r->dir_config('GeoIPMirror');
   my $mirror_data;
@@ -186,6 +207,13 @@ sub _find_nearby_country {
 sub auto_redirect : method {
   my $class = shift;
   my $r = __PACKAGE__->new(shift);
+  my $chosen = $r->find_mirror_by_addr($host);
+  my $uri = Apache::URI->parse($r, $chosen);
+  if ($uri =~ /robots\.txt$/ and defined $robots_txt) {
+    $r->send_http_header('text/plain');
+    $r->print("$robots_txt\n");
+    return OK;
+  }
   my $ReIpNum = qr{([01]?\d\d?|2[0-4]\d|25[0-5])};
   my $ReIpAddr = qr{^$ReIpNum\.$ReIpNum\.$ReIpNum\.$ReIpNum$};
   my $host =  $r->headers_in->get('X-Forwarded-For') || 
@@ -200,8 +228,6 @@ sub auto_redirect : method {
       }
       $host = '127.0.0.1' if $host =~ /,/;
   }
-  my $chosen = $r->find_mirror_by_addr($host);
-  my $uri = Apache::URI->parse($r, $chosen);
   $uri->path($uri->path . $r->path_info);
   #    my $where = $uri->unparse;
   #  $r->warn("$where $host");
@@ -614,7 +640,18 @@ If I<Apache::Geo::Mirror> is used as
     PerlHandler Apache::Geo::Mirror->auto_redirect
   </Location>
 
-then an automatic redirection is made.
+then an automatic redirection is made. Within this, the directive
+
+    PerlSetVar GeoIPRobot "/path/to/a/robots.txt"
+
+can be used to handle robots that honor a I<robots.txt> file. This can be
+a physical file that exists on the system or, if it is set to the special
+value I<default>, the string
+
+    User-agent: *
+    Disallow: /
+
+will be used, which disallows robot access to anything.
 
 =head1 VERSION
 
