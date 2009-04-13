@@ -45,4 +45,4 @@ www.parliament.ge	GE
 www.cpv.org.vn	VN
 io.uwinnipeg.ca	CA
 www.maxmind.com	US
-q.r.nosuchdomain	
+q.r.nosuchdomain US	
