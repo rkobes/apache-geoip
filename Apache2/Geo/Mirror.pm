@@ -68,7 +68,7 @@ sub init {
   
   my $robot = $r->dir_config->get('GeoIPRobot') || '';
   my $robots_txt;
-  if (defined $robot) {
+  if ($robot) {
     if (lc $robot eq 'default') {
       $robots_txt = <<'END';
 User-agent: *
@@ -77,7 +77,7 @@ END
     }
     else {
       my $fh;
-      unless (open($fh, '<', $robot) {
+      unless (open($fh, '<', $robot) ) {
         $r->log->error("Cannot open GeoIP robots file '$robot': $!");
         die;
       }
@@ -99,6 +99,7 @@ END
 sub find_mirror_by_country {
   my ($self, $country) = @_;
   my $gm = $self->{gm};
+  my $fresh = $self->{fresh};
   my $url;
   if ($country) {
     $url = $gm->find_mirror_by_country($country, $fresh) || $self->find_default;
@@ -140,7 +141,7 @@ sub auto_redirect : method {
   my $class = shift;
   my $r = __PACKAGE__->new(shift);
   my $uri = $r->parsed_uri();
-  my $robots_txt = $self->{robots_txt} || '';
+  my $robots_txt = $r->{robots_txt} || '';
   if ($uri =~ /robots\.txt$/ and defined $robots_txt) {
     $r->content_type('text/plain');
     $r->print("$robots_txt\n");

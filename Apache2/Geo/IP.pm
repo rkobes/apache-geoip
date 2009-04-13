@@ -17,26 +17,25 @@ use Apache2::GeoIP qw(find_addr);
 $VERSION = '1.99';
 
 my %flags = (
-            STANDARD => GEOIP_STANDARD(),
-            MEMORY_CACHE => GEOIP_MEMORY_CACHE(),
-            CHECK_CACHE => GEOIP_CHECK_CACHE(),
-            INDEX_CACHE => GEOIP_INDEX_CACHE(),
-            MMAP_CACHE => GEOIP_MMAP_CACHE(),
+            STANDARD => Geo::IP::GEOIP_STANDARD(),
+            MEMORY_CACHE => Geo::IP::GEOIP_MEMORY_CACHE(),
+            CHECK_CACHE => Geo::IP::GEOIP_CHECK_CACHE(),
+            INDEX_CACHE => Geo::IP::GEOIP_INDEX_CACHE(),
+            MMAP_CACHE => Geo::IP::GEOIP_MMAP_CACHE(),
 );
 
 my %types = (
-            COUNTRY_EDITION     => GEOIP_COUNTRY_EDITION(),
-            REGION_EDITION_REV0 => GEOIP_REGION_EDITION_REV0(),
-            CITY_EDITION_REV0   => GEOIP_CITY_EDITION_REV0(),
-            ORG_EDITION         => GEOIP_ORG_EDITION(),
-            ISP_EDITION         => GEOIP_ISP_EDITION(),
-            CITY_EDITION_REV1   => GEOIP_CITY_EDITION_REV1(),
-            REGION_EDITION_REV1 => GEOIP_REGION_EDITION_REV1(),
-            PROXY_EDITION       => GEOIP_PROXY_EDITION(),
-            ASNUM_EDITION       => GEOIP_ASNUM_EDITION(),
-            NETSPEED_EDITION    => GEOIP_NETSPEED_EDITION(),
-            DOMAIN_EDITION      => GEOIP_DOMAIN_EDITION(),
-            COUNTRY_EDITION_V6  => GEOIP_COUNTRY_EDITION_V6(),
+            COUNTRY_EDITION     => Geo::IP::GEOIP_COUNTRY_EDITION(),
+            REGION_EDITION_REV0 => Geo::IP::GEOIP_REGION_EDITION_REV0(),
+            CITY_EDITION_REV0   => Geo::IP::GEOIP_CITY_EDITION_REV0(),
+            ORG_EDITION         => Geo::IP::GEOIP_ORG_EDITION(),
+            ISP_EDITION         => Geo::IP::GEOIP_ISP_EDITION(),
+            CITY_EDITION_REV1   => Geo::IP::GEOIP_CITY_EDITION_REV1(),
+            REGION_EDITION_REV1 => Geo::IP::GEOIP_REGION_EDITION_REV1(),
+            PROXY_EDITION       => Geo::IP::GEOIP_PROXY_EDITION(),
+            ASNUM_EDITION       => Geo::IP::GEOIP_ASNUM_EDITION(),
+            NETSPEED_EDITION    => Geo::IP::GEOIP_NETSPEED_EDITION(),
+            DOMAIN_EDITION      => Geo::IP::GEOIP_DOMAIN_EDITION(),
 );
 
 sub new {
@@ -71,7 +70,7 @@ sub init {
   }
 
   my $type = $r->dir_config->get('GeoIPType') || '';
-  if (defined $type) {
+  if ($type) {
     my $type_re = join '|', keys %types;
     unless ($type =~ /^($type_re)$/i) {
       $r->log->error("GeoIP type '$type' not understood");
@@ -79,7 +78,7 @@ sub init {
     }
   }
 
-  if (defined $type) {
+  if ($type) {
     $gi = Geo::IP->open_type( $types{uc $type}, $flag );
     unless ($gi and ref($gi) eq 'Geo::IP') {
       $r->log->error("Couldn't make Geo::IP object from Geo::IP->open_type( $type, $flag )");
@@ -87,7 +86,7 @@ sub init {
     }
   }
   else {
-    if (defined $file) {
+    if ($file) {
       $gi = Geo::IP->open( $file, $flag );
       unless ($gi and ref($gi) eq 'Geo::IP') {
         $r->log->error("Couldn't make Geo::IP object from Geo::IP->open( $file, $flag )");

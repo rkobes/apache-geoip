@@ -9,7 +9,7 @@ use Apache2::RequestIO ();
 
 sub handler {
   my $r = shift;
-  plan $r, tests => 6;
+  plan $r, tests => 5;
   
   eval{ require 5.006001;};
   ok t_cmp($@, "", "require 5.00601");
@@ -19,8 +19,6 @@ sub handler {
   ok t_cmp($@, "", "require Apache2::GeoIP");
   eval{ require Apache2::Geo::IP;};
   ok t_cmp($@, "", "require Apache2::Geo::IP");
-  eval{ require Apache2::Geo::IP::Record;};
-  ok t_cmp($@, "", "require Apache2::Geo::IP::Record");
   eval{ require Apache2::Geo::Mirror;};
   ok t_cmp($@, "", "require Apache2::Geo::Mirror");
   Apache2::Const::OK;
