@@ -5,7 +5,7 @@ use Apache::Test;
 use Apache::TestUtil;
 use Apache::TestRequest 'GET_BODY';
 
-plan tests => 22;   # plan one test.
+plan tests => 18;   # plan one test.
 
 my $config   = Apache::Test::config();
 my $hostport = Apache::TestRequest::hostport($config) || '';
@@ -45,7 +45,3 @@ __DATA__
 192.37.150.150	CH
 192.106.51.100	IT
 192.106.150.150	IT
-63.250.206.138	US
-80.58.1.44	ES
-213.36.82.227	FR
-948.122.111.111	

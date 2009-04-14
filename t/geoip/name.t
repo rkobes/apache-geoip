@@ -5,7 +5,7 @@ use Apache::Test;
 use Apache::TestUtil;
 use Apache::TestRequest 'GET_BODY';
 
-plan tests => 19; # plan one test.
+plan tests => 11; # plan one test.
 
 my $config   = Apache::Test::config();
 my $hostport = Apache::TestRequest::hostport($config) || '';
@@ -38,11 +38,3 @@ __DATA__
 203.15.106.23	AU
 196.31.1.1	ZA
 yahoo.com	US
-ftp.leo.org     DE
-www.thaigov.go.th	TH
-www.gov.ru	RU
-www.parliament.ge	GE
-www.cpv.org.vn	VN
-io.uwinnipeg.ca	CA
-www.maxmind.com	US
-q.r.nosuchdomain US	

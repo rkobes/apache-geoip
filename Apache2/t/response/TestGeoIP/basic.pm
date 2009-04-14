@@ -13,8 +13,8 @@ sub handler {
   
   eval{ require 5.006001;};
   ok t_cmp($@, "", "require 5.00601");
-  eval{ require mod_perl2;};
-  ok t_cmp($@, "", "require mod_perl2");
+
+  ok t_cmp($ENV{MOD_PERL_API_VERSION}, 2, "require mod_perl2");
   eval{ require Apache2::GeoIP;};
   ok t_cmp($@, "", "require Apache2::GeoIP");
   eval{ require Apache2::Geo::IP;};
