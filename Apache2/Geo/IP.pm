@@ -16,27 +16,28 @@ use Apache2::GeoIP qw(find_addr);
 
 $VERSION = '1.99';
 
-my %flags = (
-            STANDARD => Geo::IP::GEOIP_STANDARD(),
-            MEMORY_CACHE => Geo::IP::GEOIP_MEMORY_CACHE(),
-            CHECK_CACHE => Geo::IP::GEOIP_CHECK_CACHE(),
-            INDEX_CACHE => Geo::IP::GEOIP_INDEX_CACHE(),
-            MMAP_CACHE => Geo::IP::GEOIP_MMAP_CACHE(),
-);
+my @flags = qw(STANDARD MEMORY_CACHE CHECK_CACHE 
+               INDEX_CACHE MMAP_CACHE
+            );
+my %flags = geoip_flags(@flags);
+my @types = qw(COUNTRY_EDITION REGION_EDITION_REV0 CITY_EDITION_REV0
+               ORG_EDITION ISP_EDITION CITY_EDITION_REV1 REGION_EDITION_REV1
+               PROXY_EDITION ASNUM_EDITION NETSPEED_EDITION DOMAIN_EDITION
+            );
+my %types = geoip_flags(@types);
 
-my %types = (
-            COUNTRY_EDITION     => Geo::IP::GEOIP_COUNTRY_EDITION(),
-            REGION_EDITION_REV0 => Geo::IP::GEOIP_REGION_EDITION_REV0(),
-            CITY_EDITION_REV0   => Geo::IP::GEOIP_CITY_EDITION_REV0(),
-            ORG_EDITION         => Geo::IP::GEOIP_ORG_EDITION(),
-            ISP_EDITION         => Geo::IP::GEOIP_ISP_EDITION(),
-            CITY_EDITION_REV1   => Geo::IP::GEOIP_CITY_EDITION_REV1(),
-            REGION_EDITION_REV1 => Geo::IP::GEOIP_REGION_EDITION_REV1(),
-            PROXY_EDITION       => Geo::IP::GEOIP_PROXY_EDITION(),
-            ASNUM_EDITION       => Geo::IP::GEOIP_ASNUM_EDITION(),
-            NETSPEED_EDITION    => Geo::IP::GEOIP_NETSPEED_EDITION(),
-            DOMAIN_EDITION      => Geo::IP::GEOIP_DOMAIN_EDITION(),
-);
+sub geoip_flags {
+  my @flags = @_;
+  my %hash;
+  foreach my $f (@flags) {
+    my $sub = 'Geo::IP::GEOIP_' . $f . '()';
+    my $rv = eval "$sub";
+    unless ($@) {
+      $hash{$f} = $rv;
+    }
+  }
+  return %hash;
+}
 
 sub new {
   my ($class, $r) = @_;
