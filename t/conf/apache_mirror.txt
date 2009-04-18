@@ -58,7 +58,7 @@ ftp://mirror.public-internet.org/pub/apache	uk
 ftp://apache.secsup.org/pub/apache/dist	us
 ftp://ftp.saix.net/pub/apache/dist	za
 ftp://ftp.is.co.za/Apache/dist	za
-http://apache.matenadaran.am	am
+http://apache.matenadaran.am	cm
 http://apache.datahost.com.ar	ar
 http://apache.xmundo.com.ar	ar
 http://gd.tuwien.ac.at/infosys/servers/http/apache/dist	at

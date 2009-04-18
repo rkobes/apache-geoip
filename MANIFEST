@@ -21,6 +21,9 @@ t/TEST.PL
 t/conf/cpan_mirror.txt
 t/conf/apache_mirror.txt
 t/conf/auto_mirror.txt
+t/conf/auto_mirror_fresh.txt
+t/conf/gnu_mirror.txt
+t/conf/robots.txt
 t/geoip/ip.t
 t/geoip/name.t
 t/geoip/mirror.t

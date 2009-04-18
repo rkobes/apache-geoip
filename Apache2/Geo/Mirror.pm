@@ -142,7 +142,8 @@ sub auto_redirect : method {
   my $r = __PACKAGE__->new(shift);
   my $uri = $r->parsed_uri();
   my $robots_txt = $r->{robots_txt} || '';
-  if ($uri =~ /robots\.txt$/ and defined $robots_txt) {
+  my $uri_path = $uri->path;
+  if ($uri_path =~ /robots\.txt$/ and defined $robots_txt) {
     $r->content_type('text/plain');
     $r->print("$robots_txt\n");
     return Apache2::Const::OK;
@@ -153,7 +154,7 @@ sub auto_redirect : method {
   $uri->scheme($scheme);
   $uri->hostname($name);
   my $location = $r->location;
-  (my $uri_path = $uri->path) =~ s!$location!!;
+  $uri_path =~ s!$location!!;
   $uri->path($path . $uri_path);
   my $where = $uri->unparse;
   $where =~ s!:\d+!!;

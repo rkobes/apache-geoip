@@ -39,7 +39,7 @@ __DATA__
   SetHandler modperl
   PerlResponseHandler TestGeoIP::mirror
   PerlSetvar GeoIPMirror "@ServerRoot@/conf/apache_mirror.txt"
-  PerlSetVar GeoIPDefault us
+  PerlSetVar GeoIPDefault "http://httpd.apache.org"
 </Location>
 
 PerlModule Apache2::Geo::Mirror
@@ -47,7 +47,31 @@ PerlModule Apache2::Geo::Mirror
   SetHandler modperl
   PerlResponseHandler Apache2::Geo::Mirror->auto_redirect
   PerlSetvar GeoIPMirror "@ServerRoot@/conf/auto_mirror.txt"
-  PerlSetVar GeoIPDefault jp
+  PerlSetVar GeoIPDefault "http://www.apache.org"
+</Location>
+
+<Location /mirror_fresh>
+  SetHandler modperl
+  PerlResponseHandler Apache2::Geo::Mirror->auto_redirect
+  PerlSetvar GeoIPMirror "@ServerRoot@/conf/auto_mirror_fresh.txt"
+  PerlSetVar GeoIPDefault "http://www.gnu.org"
+  PerlSetVar GeoIPFresh 2
+</Location>
+
+<Location /mirror_robot_default>
+  SetHandler modperl
+  PerlResponseHandler Apache2::Geo::Mirror->auto_redirect
+  PerlSetvar GeoIPMirror "@ServerRoot@/conf/gnu_mirror.txt"
+  PerlSetVar GeoIPDefault "http://www.gnu.org"
+  PerlSetVar GeoIPRobot default
+</Location>
+
+<Location /mirror_robot>
+  SetHandler modperl
+  PerlResponseHandler Apache2::Geo::Mirror->auto_redirect
+  PerlSetvar GeoIPMirror "@ServerRoot@/conf/gnu_mirror.txt"
+  PerlSetVar GeoIPDefault "http://www.gnu.org"
+  PerlSetVar GeoIPRobot "@ServerRoot@/conf/robots.txt"
 </Location>
 
 </NoAutoConfig>

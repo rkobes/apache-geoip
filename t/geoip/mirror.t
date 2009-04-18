@@ -5,7 +5,7 @@ use Apache::Test;
 use Apache::TestUtil;
 use Apache::TestRequest 'GET_BODY';
 
-plan tests => 7; 
+plan tests => 8; 
 
 my $config   = Apache::Test::config();
 my $hostport = Apache::TestRequest::hostport($config) || '';
@@ -39,6 +39,14 @@ ok t_cmp(
 
 $received = GET_BODY "/apache?pk";
 $expected = 'http://apache.bogus.pk/apache/bogus';
+ok t_cmp(
+        $received,
+        $expected,
+        "testing mirror",
+        );
+
+$received = GET_BODY "/apache?am";
+$expected = 'ftp://apache.matenadaran.am';
 ok t_cmp(
         $received,
         $expected,
