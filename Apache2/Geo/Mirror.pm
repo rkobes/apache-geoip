@@ -337,11 +337,6 @@ will be used, which disallows robot access to anything.
 Within automatic redirection, the I<X-Forwarded-For> header wil be
 used to try to infer the IP address of the client.
 
-
-=head1 VERSION
-
-0.10
-
 =head1 SEE ALSO
 
 L<Geo::IP>, L<Geo::Mirror>, and L<Apache2::RequestRec>.
