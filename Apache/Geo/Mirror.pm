@@ -145,12 +145,13 @@ sub auto_redirect : method {
   my $uri = Apache::URI->parse($r, $chosen);
   my $robots_txt = $r->{robots_txt} || '';
   my $uri_path = $uri->path;
-  if ($uri_path =~ /robots\.txt$/ and defined $robots_txt) {
+  my $path_info = $r->path_info;
+  if ($path_info =~ /robots\.txt$/ and defined $robots_txt) {
     $r->send_http_header('text/plain');
     $r->print("$robots_txt\n");
     return OK;
   }
-  $uri->path($uri_path . $r->path_info);
+  $uri->path($uri_path . $path_info);
   #    my $where = $uri->unparse;
   #  $r->warn("$where $host");
   $r->headers_out->set(Location => $uri->unparse);
