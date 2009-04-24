@@ -28,5 +28,6 @@ t/geoip/ip.t
 t/geoip/name.t
 t/geoip/mirror.t
 t/geoip/auto_mirror.t
+t/geoip/99pod.t
 
 META.yml                                Module meta-data (added by MakeMaker)

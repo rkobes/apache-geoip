@@ -11,6 +11,7 @@ Revision history for Perl extension Apache::Geo::IP.
     a proxy or load balancer
   - *incompatible change*: the GeoIPDefault Apache directive now specifies
     the default url to use in automatic redirection, not the default country
+  - add pod tests
 
 1.63 March 26, 2007
   - update C library files to GeoIP-1.4.2
