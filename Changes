@@ -1,8 +1,16 @@
 Revision history for Perl extension Apache::Geo::IP.
 
-1.64 April 10, 2009
-  - update C library and database to GeoIP-1.4.6
+1.99 April 23, 2009
+  - Require Geo::IP
+  - remove Apache::Geo::IP::Record and Apache2::Geo::IP::Record, as they're
+    now supplied through Geo::IP
+  - exit Makefile.PL if mod_perl isn't found, to try to make CPAN testers happy
   - add Apache directive to handle a robots.txt in automatic redirection
+  - add Apache directive to use the X-Forwarded-For header, if present, to
+    try to infer originating IP address; this is useful for clients using
+    a proxy or load balancer
+  - *incompatible change*: the GeoIPDefault Apache directive now specifies
+    the default url to use in automatic redirection, not the default country
 
 1.63 March 26, 2007
   - update C library files to GeoIP-1.4.2
